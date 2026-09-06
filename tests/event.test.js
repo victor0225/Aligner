@@ -39,3 +39,7 @@ test("요약은 300자를 넘길 수 없다", () => {
     /summary/
   );
 });
+
+test("event_id는 재시도 안전성을 위해 UUID여야 한다", () => {
+  assert.throws(() => validateEventInput({ ...valid, event_id: "retry-1" }), /UUID/);
+});

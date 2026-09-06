@@ -24,6 +24,7 @@ export function validateEventInput(input) {
   }
 
   requiredText(input, "event_id", 100);
+  if (!isUuid(input.event_id)) throw new Error("event_id는 UUID여야 합니다.");
   if (!intents.has(input.intent)) throw new Error("intent가 올바르지 않습니다.");
   requiredText(input, "task_title", 160);
   requiredText(input, "summary", 300);
@@ -64,4 +65,8 @@ function requiredText(input, key, maxLength) {
 
 function optionalText(input, key, maxLength) {
   if (input[key] !== undefined) requiredText(input, key, maxLength);
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
