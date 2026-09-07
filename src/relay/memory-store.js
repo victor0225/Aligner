@@ -135,6 +135,16 @@ export class MemoryStore {
     return structuredClone(notice);
   }
 
+  async insertDraft(draft) {
+    this.drafts.push(structuredClone(draft));
+    return structuredClone(draft);
+  }
+
+  async getDraft(teamId, ownerMemberId, draftId) {
+    const draft = this.drafts.find((candidate) => candidate.team_id === teamId && candidate.owner_member_id === ownerMemberId && candidate.id === draftId);
+    return draft ? structuredClone(draft) : null;
+  }
+
   async listNotices(teamId, memberId) {
     return this.notices
       .filter((notice) => notice.team_id === teamId && notice.member_id === memberId && !notice.read_at)

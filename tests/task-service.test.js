@@ -101,3 +101,13 @@ test("완료된 Task는 활성 보드에서 사라지고 로드맵에는 남는�
   assert.equal(board.columns.flatMap((column) => column.tasks).length, 0);
   assert.equal((await relay.getDesk(lead)).roadmap.length, 1);
 });
+
+test("Task Draft는 웹 확정 전까지 주도권 보드에 나타나지 않는다", async () => {
+  const relay = service();
+  const draft = await relay.createDraft(min, "task", taskDraft);
+
+  assert.equal(draft.kind, "task");
+  assert.equal(draft.owner_member_id, min.memberId);
+  assert.equal((await relay.getBoard(lead)).columns.flatMap((column) => column.tasks).length, 0);
+  assert.deepEqual((await relay.getDraft(min, draft.id)).payload, taskDraft);
+});
