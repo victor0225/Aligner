@@ -1,4 +1,5 @@
 import express from "express";
+import { pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { getConfig } from "./config.js";
@@ -61,7 +62,7 @@ export function createApp({ service, taskService, store, sessionSecret, publicBa
   return app;
 }
 
-if (import.meta.url === `file:///${process.argv[1].replaceAll("\\", "/")}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const config = getConfig();
   const client = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, { auth: { persistSession: false } });
   const store = new TaskSupabaseStore(client);
