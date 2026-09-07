@@ -19,6 +19,7 @@ test("주도권 보드는 중앙 열에 결정 상태와 현재 맥락을 표시
   assert.match(html, /결정 필요해요/);
   assert.match(html, /후보 비교 중/);
   assert.match(html, /board-shell/);
+  assert.match(html, /담당자 선택/);
   assert.doesNotMatch(renderOwnershipBoard(lead, { columns: [{ member: board.columns[0].member, tasks: [{ ...board.columns[0].tasks[0], title: "<script>alert(1)<\/script>" }] }] }), /<script>alert/);
 });
 

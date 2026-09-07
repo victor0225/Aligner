@@ -5,9 +5,11 @@ const statusCopy = {
   neutral: "진행 중"
 };
 
-export function renderOwnershipBoard(actor, board) {
-  const columns = board.columns.map(({ member, tasks }) => `<section class="member-column"><h2>${escape(member.display_name)}</h2>${tasks.length ? tasks.map(taskCard).join("") : "<p class=empty>진행 중인 Task가 없습니다.</p>"}</section>`).join("");
-  return page("주도권 보드", `<header><p class=eyebrow>Aligner · ${escape(actor.displayName)}</p><h1>주도권 보드</h1><nav><a href=/desk>내 작업대</a></nav></header><main class="board-shell">${columns}</main>`);
+export function renderOwnershipBoard(actor, board, memberId = "") {
+  const visibleColumns = memberId ? board.columns.filter((column) => column.member.id === memberId) : board.columns;
+  const columns = visibleColumns.map(({ member, tasks }) => `<section class="member-column"><h2>${escape(member.display_name)}</h2>${tasks.length ? tasks.map(taskCard).join("") : "<p class=empty>진행 중인 Task가 없습니다.</p>"}</section>`).join("");
+  const options = board.columns.map(({ member }) => `<option value="${attribute(member.id)}"${member.id === memberId ? " selected" : ""}>${escape(member.display_name)}</option>`).join("");
+  return page("주도권 보드", `<header><p class=eyebrow>Aligner · ${escape(actor.displayName)}</p><h1>주도권 보드</h1><nav><a href=/desk>내 작업대</a></nav></header><main><form class=filter method=get action=/board><label>담당자 선택<select name=member><option value>전체 팀</option>${options}</select></label><button type=submit>보기</button></form></main><main class="board-shell">${columns}</main>`);
 }
 
 export function renderDesk(actor, desk) {

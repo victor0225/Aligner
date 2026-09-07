@@ -16,7 +16,8 @@ export function attachTaskRoutes(app, { taskService, store, sessionSecret }) {
   });
 
   app.get("/board", withActor(sessionSecret, async (actor, _req, res) => {
-    res.type("html").send(renderOwnershipBoard(actor, await taskService.getBoard(actor)));
+    const memberId = typeof _req.query.member === "string" ? _req.query.member : "";
+    res.type("html").send(renderOwnershipBoard(actor, await taskService.getBoard(actor), memberId));
   }));
 
   app.get("/desk", withActor(sessionSecret, async (actor, _req, res) => {
