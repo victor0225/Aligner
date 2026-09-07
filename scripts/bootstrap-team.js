@@ -3,9 +3,9 @@ import { createClient } from "@supabase/supabase-js";
 import { getConfig } from "../src/config.js";
 import { hashToken } from "../src/relay/auth.js";
 
-const [teamKey, leadName, memberName] = process.argv.slice(2);
-if (!teamKey || !leadName || !memberName) {
-  console.error("사용법: pnpm bootstrap-team -- <team-key> <lead-name> <member-name>");
+const [teamKey, leadName, ...memberNames] = process.argv.slice(2);
+if (!teamKey || !leadName || memberNames.length === 0) {
+  console.error("사용법: pnpm bootstrap-team -- <team-key> <lead-name> <member-name> [...member-name]");
   process.exit(1);
 }
 
@@ -20,7 +20,12 @@ if (teamError) throw teamError;
 
 const tokens = [
   { member_key: "lead", display_name: leadName, role: "lead", token: makeToken() },
-  { member_key: "member-1", display_name: memberName, role: "member", token: makeToken() }
+  ...memberNames.map((display_name, index) => ({
+    member_key: `member-${index + 1}`,
+    display_name,
+    role: "member",
+    token: makeToken()
+  }))
 ];
 const { error: memberError } = await client.from("relay_members").insert(
   tokens.map(({ token, ...member }) => ({ ...member, team_id: team.id, token_hash: hashToken(token) }))
