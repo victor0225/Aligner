@@ -111,3 +111,28 @@ test("Task Draft는 웹 확정 전까지 주도권 보드에 나타나지 않는
   assert.equal((await relay.getBoard(lead)).columns.flatMap((column) => column.tasks).length, 0);
   assert.deepEqual((await relay.getDraft(min, draft.id)).payload, taskDraft);
 });
+
+test("Task Draft는 웹 확정 때만 실제 Task가 되고 다시 제출할 수 없다", async () => {
+  const relay = service();
+  const draft = await relay.createDraft(min, "task", taskDraft);
+
+  const task = await relay.submitTaskDraft(min, draft.id, { ...taskDraft, goal: "제품화에 맞는 통신 구조를 확정한다." });
+  assert.equal(task.goal, "제품화에 맞는 통신 구조를 확정한다.");
+  assert.equal((await relay.getBoard(lead)).columns.flatMap((column) => column.tasks).length, 1);
+  await assert.rejects(() => relay.submitTaskDraft(min, draft.id, taskDraft), /만료/);
+});
+
+test("결정 요청 Draft는 웹 확정 전에는 팀장 작업대에 나타나지 않는다", async () => {
+  const relay = service();
+  const task = await relay.createTask(min, taskDraft);
+  const draft = await relay.createDraft(min, "decision_request", {
+    task_id: task.id,
+    summary: "통신 모듈 방향을 결정해 주세요.",
+    target_member_id: lead.memberId,
+    impact: "PCB 구조와 구매 비용"
+  });
+
+  assert.equal((await relay.getDesk(lead)).decisions.length, 0);
+  await relay.submitRecordDraft(min, draft.id, draft.payload);
+  assert.equal((await relay.getDesk(lead)).decisions.length, 1);
+});

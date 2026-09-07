@@ -6,6 +6,7 @@ export function getConfig(env = process.env) {
     supabaseUrl: env.SUPABASE_URL,
     supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
     sessionSecret: env.RELAY_SESSION_SECRET,
+    publicBaseUrl: String(env.PUBLIC_BASE_URL || "https://subjector.onrender.com").replace(/\/$/, ""),
     port: Number(env.PORT || 3000)
   };
 }

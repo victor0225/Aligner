@@ -145,6 +145,13 @@ export class MemoryStore {
     return draft ? structuredClone(draft) : null;
   }
 
+  async submitDraft(draftId, submittedAt) {
+    const draft = this.drafts.find((candidate) => candidate.id === draftId);
+    if (!draft) return null;
+    draft.submitted_at = submittedAt;
+    return structuredClone(draft);
+  }
+
   async listNotices(teamId, memberId) {
     return this.notices
       .filter((notice) => notice.team_id === teamId && notice.member_id === memberId && !notice.read_at)

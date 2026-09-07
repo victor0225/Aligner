@@ -37,6 +37,73 @@ export function createMcpServer(actor, service) {
   return server;
 }
 
+export function createTaskMcpServer(actor, taskService, baseUrl = "") {
+  const server = new McpServer({ name: "aligner", version: "0.2.0" });
+  server.registerTool(
+    "create_task_draft",
+    {
+      description: "사용자가 명시적으로 요청한 경우에만 비공개 Task 초안을 만듭니다. 이 호출은 팀 보드에 아무것도 게시하지 않습니다. 원문 대화·코드·터미널·비밀은 넣지 마세요.",
+      inputSchema: {
+        title: z.string().min(1).max(160),
+        goal: z.string().min(1).max(200),
+        context: z.string().min(1).max(500),
+        completion_criteria: z.string().min(1).max(300)
+      }
+    },
+    async (input) => {
+      try {
+        const draft = await taskService.createDraft(actor, "task", input);
+        return text({ draft_id: draft.id, kind: draft.kind, review_url: `${baseUrl}/drafts/${draft.id}` });
+      } catch (error) {
+        return text({ error: error.message }, true);
+      }
+    }
+  );
+  server.registerTool(
+    "create_record_draft",
+    {
+      description: "결정 요청·Task 이관·완료의 비공개 초안을 만듭니다. 웹에서 확인하기 전에는 누구에게도 전송하지 않습니다.",
+      inputSchema: {
+        kind: z.enum(["decision_request", "transfer_request", "completion"]),
+        task_id: z.string().uuid(),
+        summary: z.string().min(1).max(300).optional(),
+        target_member_id: z.string().min(1).max(100).optional(),
+        impact: z.string().min(1).max(300).optional(),
+        options: z.array(z.string().min(1).max(160)).max(3).optional(),
+        completed_work: z.string().min(1).max(300).optional(),
+        requested_work: z.string().min(1).max(300).optional(),
+        result: z.string().min(1).max(300).optional(),
+        evidence_link: z.string().url().optional()
+      }
+    },
+    async ({ kind, ...input }) => {
+      try {
+        const draft = await taskService.createDraft(actor, kind, input);
+        return text({ draft_id: draft.id, kind: draft.kind, review_url: `${baseUrl}/drafts/${draft.id}` });
+      } catch (error) {
+        return text({ error: error.message }, true);
+      }
+    }
+  );
+  server.registerTool(
+    "read_my_desk",
+    { description: "내게 확인·결정·이관이 필요한 구조화된 Task 항목만 읽습니다.", inputSchema: {} },
+    async () => text(await taskService.getDesk(actor))
+  );
+  server.registerTool(
+    "read_task",
+    { description: "팀에 공유된 Task의 구조화된 맥락·기록·이관 이력을 읽습니다.", inputSchema: { task_id: z.string().uuid() } },
+    async ({ task_id }) => {
+      try {
+        return text(await taskService.getTaskDetail(actor, task_id));
+      } catch (error) {
+        return text({ error: error.message }, true);
+      }
+    }
+  );
+  return server;
+}
+
 function eventSchema() {
   return {
     event_id: z.string().uuid(),

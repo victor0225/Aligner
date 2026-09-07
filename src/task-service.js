@@ -41,15 +41,16 @@ export class TaskService {
   }
 
   async createDraft(actor, kind, input) {
-    if (kind !== "task") throw new Error("현재는 Task Draft만 만들 수 있습니다.");
-    const payload = validateTaskDraft(input);
+    const payload = kind === "task"
+      ? validateTaskDraft(input)
+      : await this.validateRecordDraftForTask(actor, kind, input);
     const createdAt = now();
     return this.store.insertDraft({
       id: randomUUID(),
       team_id: actor.teamId,
       owner_member_id: actor.memberId,
       kind,
-      task_id: null,
+      task_id: payload.task_id || null,
       payload,
       created_at: createdAt,
       expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
@@ -62,6 +63,26 @@ export class TaskService {
     if (!draft) throw new Error("Draft를 찾을 수 없습니다.");
     if (draft.submitted_at || new Date(draft.expires_at).getTime() <= Date.now()) throw new Error("Draft가 만료되었습니다.");
     return draft;
+  }
+
+  async submitTaskDraft(actor, draftId, input) {
+    const draft = await this.getDraft(actor, draftId);
+    if (draft.kind !== "task") throw new Error("Task Draft가 아닙니다.");
+    const task = await this.createTask(actor, input);
+    await this.store.submitDraft(draft.id, now());
+    return task;
+  }
+
+  async submitRecordDraft(actor, draftId, input) {
+    const draft = await this.getDraft(actor, draftId);
+    if (draft.kind === "task") throw new Error("기록 Draft가 아닙니다.");
+    const payload = await this.validateRecordDraftForTask(actor, draft.kind, input);
+    const { task_id: taskId, ...recordInput } = payload;
+    const record = draft.kind === "completion"
+      ? await this.completeTask(actor, taskId, recordInput)
+      : await this.addRecord(actor, taskId, recordInput);
+    await this.store.submitDraft(draft.id, now());
+    return record;
   }
 
   async addRecord(actor, taskId, input) {
@@ -170,6 +191,14 @@ export class TaskService {
     const task = await this.store.getTask(actor.teamId, taskId);
     if (!task) throw new Error("Task를 찾을 수 없습니다.");
     return task;
+  }
+
+  async validateRecordDraftForTask(actor, kind, input) {
+    if (!["decision_request", "transfer_request", "completion"].includes(kind)) throw new Error("이 종류의 Draft는 만들 수 없습니다.");
+    if (!input || typeof input !== "object" || typeof input.task_id !== "string") throw new Error("task_id가 필요합니다.");
+    await this.requireTask(actor, input.task_id);
+    const { task_id: taskId, ...record } = input;
+    return { task_id: taskId, ...validateRecordDraft({ kind, ...record }) };
   }
 
   async requireMember(teamId, memberId) {
